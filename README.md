@@ -73,6 +73,11 @@ npm run dev -- data/scenario1.delay-cascade.json
 - Luxon
 - Jest
 - ESLint + Prettier
+- Knip (dependency usage checks)
+
+## Dev runner
+
+- `tsx src/index.ts` (via `npm run dev`)
 
 ## Notes
 

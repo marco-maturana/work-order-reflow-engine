@@ -19,7 +19,7 @@ Bootstrap the project with tooling, base structure, and minimal entrypoints so w
 ## Step-by-step plan
 
 1. **Decide tooling defaults**
-   - Chosen: ESM (`"type": "module"` / `moduleResolution: "NodeNext"`), dev runner `tsx`, Jest via `ts-jest`.
+   - Chosen: ESM (`"type": "module"` / `moduleResolution: "bundler"`), dev runner `tsx src/index.ts`, Jest via `ts-jest`.
 2. **Create project metadata**
    - Add `package.json` with scripts (`dev`, `build`, `start`, `test`, `lint`, `format`).
 3. **Add TypeScript + test config**

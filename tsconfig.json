@@ -1,10 +1,11 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "rootDir": "src",
+    "target": "es2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "rootDir": ".",
     "outDir": "dist",
+    "baseUrl": ".",
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "strict": true,
@@ -14,5 +15,8 @@
     "types": ["node", "jest"]
   },
   "include": ["src", "tests", "jest.config.ts"],
-  "exclude": ["dist", "node_modules"]
+  "exclude": ["dist", "node_modules"],
+  "ts-node": {
+    "esm": true,
+  }
 }
