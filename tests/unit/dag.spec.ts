@@ -7,7 +7,7 @@ describe('DAG utilities', () => {
       createWorkOrder('A'),
       createWorkOrder('B', ['A']),
       createWorkOrder('C', ['B']),
-      createWorkOrder('D')
+      createWorkOrder('D'),
     ];
 
     const order = topologicalSort(workOrders);
@@ -26,7 +26,7 @@ describe('DAG utilities', () => {
   it('throws when dependency is missing from input set', () => {
     const missing = [createWorkOrder('A', ['X'])];
     expect(() => buildDependencyGraph(missing) && topologicalSort(missing)).toThrow(
-      /unknown dependencies/i
+      /unknown dependencies/i,
     );
   });
 });

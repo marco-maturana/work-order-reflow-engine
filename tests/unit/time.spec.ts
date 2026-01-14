@@ -6,10 +6,10 @@ const workCenter = (overrides?: Partial<WorkCenterData>): WorkCenterData => ({
   name: 'wc-1',
   shifts: [
     { dayOfWeek: 1, startHour: 8, endHour: 12 },
-    { dayOfWeek: 2, startHour: 8, endHour: 12 }
+    { dayOfWeek: 2, startHour: 8, endHour: 12 },
   ],
   maintenanceWindows: [],
-  ...overrides
+  ...overrides,
 });
 
 describe('addWorkingMinutes', () => {
@@ -31,9 +31,7 @@ describe('addWorkingMinutes', () => {
 
   it('skips maintenance windows inside a shift', () => {
     const wc = workCenter({
-      maintenanceWindows: [
-        { startDate: '2024-01-01T09:00:00Z', endDate: '2024-01-01T10:00:00Z' }
-      ]
+      maintenanceWindows: [{ startDate: '2024-01-01T09:00:00Z', endDate: '2024-01-01T10:00:00Z' }],
     });
     const start = DateTime.fromISO('2024-01-01T08:00:00Z', { zone: 'utc' });
     const result = addWorkingMinutes(start, 180, wc);

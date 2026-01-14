@@ -11,6 +11,6 @@ export const createWorkOrder = (id: string, dependsOn: string[] = []): WorkOrder
     endDate: '2024-01-01T09:00:00Z',
     durationMinutes: 60,
     isMaintenance: false,
-    dependsOnWorkOrderIds: dependsOn
-  }
+    dependsOnWorkOrderIds: dependsOn,
+  },
 });

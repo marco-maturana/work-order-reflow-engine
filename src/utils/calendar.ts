@@ -65,13 +65,13 @@ export function nextShiftStart(date: DateTime, workCenter: WorkCenterData): Date
         hour: shift.startHour,
         minute: 0,
         second: 0,
-        millisecond: 0
+        millisecond: 0,
       });
       const shiftEnd = candidateDay.set({
         hour: shift.endHour,
         minute: 0,
         second: 0,
-        millisecond: 0
+        millisecond: 0,
       });
       if (shiftEnd <= base && i === 0) continue;
 
@@ -91,7 +91,7 @@ export function nextShiftStart(date: DateTime, workCenter: WorkCenterData): Date
 
 export function findNextShiftWindow(
   date: DateTime,
-  workCenter: WorkCenterData
+  workCenter: WorkCenterData,
 ): { start: DateTime; end: DateTime } | null {
   const base = asUtc(date);
   for (let i = 0; i <= MAX_LOOKAHEAD_DAYS; i += 1) {
@@ -102,13 +102,13 @@ export function findNextShiftWindow(
         hour: shift.startHour,
         minute: 0,
         second: 0,
-        millisecond: 0
+        millisecond: 0,
       });
       const shiftEnd = candidateDay.set({
         hour: shift.endHour,
         minute: 0,
         second: 0,
-        millisecond: 0
+        millisecond: 0,
       });
       const start = base > shiftStart ? base : shiftStart;
       if (shiftEnd <= start) continue;
