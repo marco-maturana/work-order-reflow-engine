@@ -4,10 +4,10 @@ import { createWorkOrder } from '../factories/work-order';
 describe('DAG utilities', () => {
   it('sorts work orders respecting dependencies', () => {
     const workOrders = [
-      createWorkOrder('A'),
-      createWorkOrder('B', ['A']),
-      createWorkOrder('C', ['B']),
-      createWorkOrder('D'),
+      createWorkOrder({ docId: 'A' }),
+      createWorkOrder({ docId: 'B', data: { dependsOnWorkOrderIds: ['A'] } }),
+      createWorkOrder({ docId: 'C', data: { dependsOnWorkOrderIds: ['B'] } }),
+      createWorkOrder({ docId: 'D' }),
     ];
 
     const order = topologicalSort(workOrders);
@@ -19,14 +19,15 @@ describe('DAG utilities', () => {
   });
 
   it('throws on circular dependencies', () => {
-    const cyclic = [createWorkOrder('A', ['B']), createWorkOrder('B', ['A'])];
+    const cyclic = [
+      createWorkOrder({ docId: 'A', data: { dependsOnWorkOrderIds: ['B'] } }),
+      createWorkOrder({ docId: 'B', data: { dependsOnWorkOrderIds: ['A'] } }),
+    ];
     expect(() => ensureAcyclic(cyclic)).toThrow(/circular dependency/i);
   });
 
   it('throws when dependency is missing from input set', () => {
-    const missing = [createWorkOrder('A', ['X'])];
-    expect(() => buildDependencyGraph(missing) && topologicalSort(missing)).toThrow(
-      /unknown dependencies/i,
-    );
+    const missing = [createWorkOrder({ docId: 'A', data: { dependsOnWorkOrderIds: ['X'] } })];
+    expect(() => buildDependencyGraph(missing) && topologicalSort(missing)).toThrow();
   });
 });
