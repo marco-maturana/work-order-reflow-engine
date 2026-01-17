@@ -9,13 +9,20 @@ const asUtc = (dt: DateTime): DateTime => dt.setZone('utc');
 
 type BoundedInterval = Interval & { start: DateTime; end: DateTime };
 
-function toInterval(mw: MaintenanceWindow): Interval | null {
+function maintenanceWindowToInterval(mw: MaintenanceWindow): Interval | null {
   const start = DateTime.fromISO(mw.startDate, { zone: 'utc' });
   const end = DateTime.fromISO(mw.endDate, { zone: 'utc' });
   const interval = Interval.fromDateTimes(start, end);
-  if (!interval.isValid || !interval.start || !interval.end || interval.start >= interval.end) {
+
+  if (
+    !interval.isValid ||
+    interval.start == null ||
+    interval.end == null ||
+    interval.start >= interval.end
+  ) {
     return null;
   }
+
   return interval;
 }
 
@@ -38,15 +45,15 @@ export function getShiftsForDay(workCenter: WorkCenterData, day: number): WorkCe
 }
 
 export function isDuringMaintenance(date: DateTime, maintenance: MaintenanceWindow): boolean {
-  const interval = toInterval(maintenance);
+  const interval = maintenanceWindowToInterval(maintenance);
   return interval ? interval.contains(asUtc(date)) : false;
 }
 
 function maintenanceIntervals(workCenter: WorkCenterData, window: Interval): BoundedInterval[] {
-  if (!window.isValid || !window.start || !window.end) return [];
+  if (!window.isValid || window.start == null || window.end == null) return [];
 
   const intervals = workCenter.maintenanceWindows
-    .map(toInterval)
+    .map(maintenanceWindowToInterval)
     .filter((m): m is Interval => Boolean(m))
     .filter(hasBounds)
     .filter((m) => m.overlaps(window))
@@ -57,9 +64,11 @@ function maintenanceIntervals(workCenter: WorkCenterData, window: Interval): Bou
 
 export function nextShiftStart(date: DateTime, workCenter: WorkCenterData): DateTime | null {
   const base = asUtc(date);
+
   for (let i = 0; i <= MAX_LOOKAHEAD_DAYS; i += 1) {
     const candidateDay = base.plus({ days: i });
     const shifts = getShiftsForDay(workCenter, weekdayToShiftDay(candidateDay));
+
     for (const shift of shifts) {
       const shiftStart = candidateDay.set({
         hour: shift.startHour,
@@ -73,19 +82,25 @@ export function nextShiftStart(date: DateTime, workCenter: WorkCenterData): Date
         second: 0,
         millisecond: 0,
       });
+
+      // Skip shifts that already ended on the same day as the base time.
       if (shiftEnd <= base && i === 0) continue;
 
       const start = base >= shiftStart && base < shiftEnd ? base : shiftStart;
       const interval = Interval.fromDateTimes(start, shiftEnd);
       const blocks = maintenanceIntervals(workCenter, interval);
+
       if (blocks.length === 0) return start;
 
       const firstBlock = blocks[0];
+
       if (start < firstBlock.start) return start;
       if (firstBlock.end < shiftEnd) return firstBlock.end;
+
       // otherwise blocked until shift end; continue searching
     }
   }
+
   return null;
 }
 

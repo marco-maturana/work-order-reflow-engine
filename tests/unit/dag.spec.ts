@@ -1,4 +1,4 @@
-import { buildDependencyGraph, ensureAcyclic, topologicalSort } from '../../src/reflow/dag';
+import { topologicalSort } from '../../src/reflow/dag';
 import { createWorkOrder } from '../factories/work-order';
 
 describe('DAG utilities', () => {
@@ -23,11 +23,11 @@ describe('DAG utilities', () => {
       createWorkOrder({ docId: 'A', data: { dependsOnWorkOrderIds: ['B'] } }),
       createWorkOrder({ docId: 'B', data: { dependsOnWorkOrderIds: ['A'] } }),
     ];
-    expect(() => ensureAcyclic(cyclic)).toThrow(/circular dependency/i);
+    expect(() => topologicalSort(cyclic)).toThrow(/circular dependency/i);
   });
 
   it('throws when dependency is missing from input set', () => {
     const missing = [createWorkOrder({ docId: 'A', data: { dependsOnWorkOrderIds: ['X'] } })];
-    expect(() => buildDependencyGraph(missing) && topologicalSort(missing)).toThrow();
+    expect(() => topologicalSort(missing) && topologicalSort(missing)).toThrow();
   });
 });
