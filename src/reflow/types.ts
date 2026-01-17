@@ -1,6 +1,6 @@
-export type DocumentType = 'workOrder' | 'workCenter' | 'manufacturingOrder';
+type DocumentType = 'workOrder' | 'workCenter' | 'manufacturingOrder';
 
-export interface BaseDocument<T extends DocumentType, D> {
+interface BaseDocument<T extends DocumentType, D> {
   docId: string;
   docType: T;
   data: D;
@@ -36,7 +36,7 @@ export interface WorkCenterData {
   maintenanceWindows: MaintenanceWindow[];
 }
 
-export interface ManufacturingOrderData {
+interface ManufacturingOrderData {
   manufacturingOrderNumber: string;
   itemId: string;
   quantity: number;
@@ -45,7 +45,7 @@ export interface ManufacturingOrderData {
 
 export type WorkOrderDocument = BaseDocument<'workOrder', WorkOrderData>;
 export type WorkCenterDocument = BaseDocument<'workCenter', WorkCenterData>;
-export type ManufacturingOrderDocument = BaseDocument<'manufacturingOrder', ManufacturingOrderData>;
+type ManufacturingOrderDocument = BaseDocument<'manufacturingOrder', ManufacturingOrderData>;
 
 export type ScenarioDocument = WorkOrderDocument | WorkCenterDocument | ManufacturingOrderDocument;
 

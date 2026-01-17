@@ -1,6 +1,6 @@
 import type { WorkOrderDocument } from './types';
 
-export type DependencyGraph = Map<string, Set<string>>;
+type DependencyGraph = Map<string, Set<string>>;
 
 function assertKnownDependencies(workOrders: WorkOrderDocument[], ids: Set<string>): void {
   const unknownIds = new Set<string>();
