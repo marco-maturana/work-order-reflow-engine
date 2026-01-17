@@ -2,7 +2,7 @@ import { DateTime } from 'luxon';
 import { addWorkingMinutes } from '../utils/time';
 import { nextShiftStart } from '../utils/calendar';
 import { validateSchedule } from './constraint-checker';
-import { ensureAcyclic, topologicalSort } from './dag';
+import { topologicalSort } from './dag';
 import type {
   ReflowChange,
   ReflowInput,
@@ -23,28 +23,22 @@ type ScheduledInterval = {
 
 type ScheduleByCenter = Map<string, ScheduledInterval[]>;
 
+const MAX_SLOT_SEARCH_ITERATIONS = 200;
+
 export class ReflowService {
   async reflow(input: ReflowInput): Promise<ReflowResult> {
     const workOrders = input.documents.filter(
       (doc) => doc.docType === 'workOrder',
     ) as WorkOrderDocument[];
-    const workCentersList = input.documents.filter(
+    const workCenters = input.documents.filter(
       (doc) => doc.docType === 'workCenter',
     ) as WorkCenterDocument[];
 
-    ensureAcyclic(workOrders);
     const topoOrder = topologicalSort(workOrders);
-    const orderedWorkOrders = topoOrder
-      .map((id) => workOrders.find((wo) => wo.docId === id)!)
-      .sort((a, b) => {
-        if (a.data.isMaintenance && !b.data.isMaintenance) return -1;
-        if (!a.data.isMaintenance && b.data.isMaintenance) return 1;
-        const aStart = this.toUtc(a.data.startDate).toMillis();
-        const bStart = this.toUtc(b.data.startDate).toMillis();
-        return aStart - bStart;
-      });
+    const workOrderById = new Map(workOrders.map((wo) => [wo.docId, wo]));
+    const orderedWorkOrders = topoOrder.map((id) => workOrderById.get(id)!);
 
-    const workCenterMap = new Map(workCentersList.map((wc) => [wc.docId, wc]));
+    const workCenterMap = new Map(workCenters.map((wc) => [wc.docId, wc]));
     const completed = new Map<string, ScheduledInterval>();
     const scheduleByCenter: ScheduleByCenter = new Map();
     const changes: ReflowChange[] = [];
@@ -69,9 +63,12 @@ export class ReflowService {
         this.insertInterval(schedule, interval);
         scheduleByCenter.set(wo.data.workCenterId, schedule);
         completed.set(wo.docId, interval);
-        changes.push(
-          this.computeChanges(wo, originalStart, originalEnd, ['maintenance not rescheduled']),
-        );
+        const change = this.computeChanges(wo, originalStart, originalEnd, [
+          'maintenance not rescheduled',
+        ]);
+        if (change) {
+          changes.push(change);
+        }
         updatedWorkOrders.push({
           ...wo,
           data: {
@@ -112,7 +109,10 @@ export class ReflowService {
         ...slot.reasons,
       ];
 
-      changes.push(this.computeChanges(wo, slot.start, slot.end, reasons));
+      const change = this.computeChanges(wo, slot.start, slot.end, reasons);
+      if (change) {
+        changes.push(change);
+      }
       updatedWorkOrders.push({
         ...wo,
         data: {
@@ -121,12 +121,13 @@ export class ReflowService {
           endDate: this.formatIso(slot.end),
         },
       });
+
       if (reasons.length > 0) {
         explanation.push(`Work order ${wo.docId} moved due to ${reasons.join(', ')}.`);
       }
     }
 
-    const validation = validateSchedule(updatedWorkOrders, workCentersList);
+    const validation = validateSchedule(updatedWorkOrders, workCenters);
 
     return {
       updatedWorkOrders,
@@ -180,14 +181,12 @@ export class ReflowService {
     let safety = 0;
     const reasons = new Set<string>();
 
-    while (safety++ < 200) {
+    while (safety++ < MAX_SLOT_SEARCH_ITERATIONS) {
       const shiftAligned = nextShiftStart(cursor, workCenter);
-      if (!shiftAligned) {
-        throw new Error(`No available shift after ${cursor.toISO()}`);
-      }
-      if (shiftAligned > cursor) {
-        reasons.add('shift/maintenance alignment');
-      }
+
+      if (shiftAligned == null) throw new Error(`No available shift after ${cursor.toISO()}`);
+      if (shiftAligned > cursor) reasons.add('shift/maintenance alignment');
+
       cursor = shiftAligned;
 
       const { end } = addWorkingMinutes(cursor, durationMinutes, workCenter);
@@ -222,12 +221,23 @@ export class ReflowService {
     workOrder: WorkOrderDocument,
     completed: Map<string, ScheduledInterval>,
   ): DateTime {
-    const parentEnds = workOrder.data.dependsOnWorkOrderIds.map((id) => completed.get(id)?.end);
-    const latest = parentEnds.reduce<DateTime | null>((acc, val) => {
-      if (!val) return acc;
-      if (!acc || val > acc) return val;
-      return acc;
-    }, null);
+    if (workOrder.data.dependsOnWorkOrderIds.length === 0) {
+      return this.toUtc(workOrder.data.startDate);
+    }
+
+    let latest: DateTime | null = null;
+    for (const parentId of workOrder.data.dependsOnWorkOrderIds) {
+      const parent = completed.get(parentId);
+      if (!parent) {
+        throw new Error(
+          `Dependency order violated: ${workOrder.docId} depends on ${parentId} which is not scheduled yet`,
+        );
+      }
+      if (latest == null || parent.end > latest) {
+        latest = parent.end;
+      }
+    }
+
     return latest ?? this.toUtc(workOrder.data.startDate);
   }
 
@@ -236,11 +246,13 @@ export class ReflowService {
     start: DateTime,
     end: DateTime,
     reasons: string[],
-  ): ReflowChange {
+  ): ReflowChange | null {
     const origStart = this.toUtc(workOrder.data.startDate);
     const origEnd = this.toUtc(workOrder.data.endDate);
     const deltaMinutes = Math.round(end.diff(origEnd, 'minutes').minutes);
     const moved = deltaMinutes !== 0 || !start.equals(origStart);
+
+    if (!moved) return null;
 
     return {
       workOrderId: workOrder.docId,
@@ -248,8 +260,8 @@ export class ReflowService {
       fromEnd: this.formatIso(origEnd),
       toStart: this.formatIso(start),
       toEnd: this.formatIso(end),
-      deltaMinutes: moved ? deltaMinutes : 0,
-      reasons: moved ? reasons : [],
+      deltaMinutes,
+      reasons,
     };
   }
 }
