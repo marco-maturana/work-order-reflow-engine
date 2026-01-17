@@ -2,58 +2,83 @@ import type { WorkOrderDocument } from './types';
 
 export type DependencyGraph = Map<string, Set<string>>;
 
-function assertKnownDependencies(graph: DependencyGraph, ids: Set<string>): void {
-  const unknown = new Set<string>();
-  graph.forEach((deps) => {
-    deps.forEach((dep) => {
+function assertKnownDependencies(workOrders: WorkOrderDocument[], ids: Set<string>): void {
+  const unknownIds = new Set<string>();
+  workOrders
+    .flatMap((wo) => wo.data.dependsOnWorkOrderIds)
+    .forEach((dep) => {
       if (!ids.has(dep)) {
-        unknown.add(dep);
+        unknownIds.add(dep);
       }
     });
-  });
 
-  if (unknown.size > 0) {
-    throw new Error(`Unknown dependencies: ${Array.from(unknown).join(', ')}`);
+  if (unknownIds.size > 0) {
+    throw new Error(`Unknown dependencies: ${Array.from(unknownIds).join(', ')}`);
   }
 }
 
-export function buildDependencyGraph(workOrders: WorkOrderDocument[]): DependencyGraph {
+function cloneGraph(graph: DependencyGraph): DependencyGraph {
+  const clone: DependencyGraph = new Map();
+  for (const [id, deps] of graph) {
+    clone.set(id, new Set(deps));
+  }
+  return clone;
+}
+
+function findNodesWithNoDependencies(graph: DependencyGraph): string[] {
+  const ready: string[] = [];
+
+  for (const [id, deps] of graph) {
+    if (deps.size === 0) ready.push(id);
+  }
+
+  return ready;
+}
+
+function buildDependencyGraph(workOrders: WorkOrderDocument[]): DependencyGraph {
   const graph: DependencyGraph = new Map();
+
   workOrders.forEach((wo) => {
     graph.set(wo.docId, new Set(wo.data.dependsOnWorkOrderIds));
   });
+
   return graph;
 }
 
+/**
+ * Returns work order IDs in topological order (dependencies before dependents).
+ *
+ * Uses Kahn's algorithm:
+ * 1. Find all nodes with no dependencies (in-degree = 0).
+ * 2. Remove them from the graph and add to result.
+ * 3. Repeat until all nodes are processed or a cycle is detected.
+ *
+ * @param workOrders - List of work orders to sort.
+ * @returns Array of work order IDs in dependency order.
+ * @throws Error if circular dependencies or unknown dependencies are found.
+ */
 export function topologicalSort(workOrders: WorkOrderDocument[]): string[] {
-  const ids = new Set(workOrders.map((wo) => wo.docId));
+  const knownIds = new Set(workOrders.map((wo) => wo.docId));
   const graph = buildDependencyGraph(workOrders);
-  assertKnownDependencies(graph, ids);
 
-  // Kahn's algorithm over a mutable copy of dependency sets.
-  const remaining = new Map<string, Set<string>>();
-  graph.forEach((deps, id) => {
-    remaining.set(id, new Set(deps));
-  });
+  assertKnownDependencies(workOrders, knownIds);
 
-  const ready: string[] = [];
-  remaining.forEach((deps, id) => {
-    if (deps.size === 0) {
-      ready.push(id);
-    }
-  });
+  const remaining = cloneGraph(graph);
+  const nodesWithNoDependencies = findNodesWithNoDependencies(remaining);
 
-  const order: string[] = [];
-  while (ready.length > 0) {
-    const current = ready.shift() as string;
-    order.push(current);
+  const sorted: string[] = [];
+
+  while (nodesWithNoDependencies.length > 0) {
+    const current = nodesWithNoDependencies.shift()!;
+
+    sorted.push(current);
     remaining.delete(current);
 
-    remaining.forEach((deps, id) => {
+    for (const [id, deps] of remaining) {
       if (deps.delete(current) && deps.size === 0) {
-        ready.push(id);
+        nodesWithNoDependencies.push(id);
       }
-    });
+    }
   }
 
   if (remaining.size > 0) {
@@ -61,9 +86,5 @@ export function topologicalSort(workOrders: WorkOrderDocument[]): string[] {
     throw new Error(`Circular dependency detected involving: ${cycleIds.join(', ')}`);
   }
 
-  return order;
-}
-
-export function ensureAcyclic(workOrders: WorkOrderDocument[]): void {
-  topologicalSort(workOrders);
+  return sorted;
 }

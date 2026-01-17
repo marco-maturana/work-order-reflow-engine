@@ -52,9 +52,10 @@ Work center data:
 ## Expected output
 
 - Updated work orders with new start/end dates.
-- List of changes (what moved, by how many minutes, why).
+- List of changes for moved work orders (by how many minutes, why).
 - Human-readable explanation of the reflow.
 - Validation result (pass/fail with details).
+- Each change includes `deltaMinutes`: difference (minutes) between the recalculated `endDate` and the original `endDate` (positive = later, negative = earlier).
 
 ## Sample scenarios (planned)
 
@@ -85,3 +86,4 @@ npm run dev -- data/scenario1.delay-cascade.json
 - Work duration is measured in working minutes, not wall-clock minutes.
 - Input `endDate` is accepted but recalculated during reflow.
 - Incomplete or future enhancements should be tagged with `@upgrade`.
+- Maintenance windows are assumed non-overlapping and non-adjacent (no back-to-back blocks).
