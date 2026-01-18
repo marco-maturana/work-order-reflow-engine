@@ -1,0 +1,63 @@
+[
+  {
+    "docId": "wc-1",
+    "docType": "workCenter",
+    "data": {
+      "name": "Extrusion Line 1",
+      "shifts": [{ "dayOfWeek": 1, "startHour": 8, "endHour": 12 }],
+      "maintenanceWindows": []
+    }
+  },
+  {
+    "docId": "mo-4",
+    "docType": "manufacturingOrder",
+    "data": {
+      "manufacturingOrderNumber": "MO-4",
+      "itemId": "ITEM-4",
+      "quantity": 40,
+      "dueDate": "2024-01-08T00:00:00Z"
+    }
+  },
+  {
+    "docId": "wo-prod-2",
+    "docType": "workOrder",
+    "data": {
+      "workOrderNumber": "WO-PROD-2",
+      "manufacturingOrderId": "mo-4",
+      "workCenterId": "wc-1",
+      "startDate": "2024-01-01T09:00:00Z",
+      "endDate": "2024-01-01T10:00:00Z",
+      "durationMinutes": 60,
+      "isMaintenance": false,
+      "dependsOnWorkOrderIds": []
+    }
+  },
+  {
+    "docId": "wo-maint",
+    "docType": "workOrder",
+    "data": {
+      "workOrderNumber": "WO-MAINT",
+      "manufacturingOrderId": "mo-4",
+      "workCenterId": "wc-1",
+      "startDate": "2024-01-01T09:00:00Z",
+      "endDate": "2024-01-01T10:00:00Z",
+      "durationMinutes": 60,
+      "isMaintenance": true,
+      "dependsOnWorkOrderIds": []
+    }
+  },
+  {
+    "docId": "wo-prod-1",
+    "docType": "workOrder",
+    "data": {
+      "workOrderNumber": "WO-PROD-1",
+      "manufacturingOrderId": "mo-4",
+      "workCenterId": "wc-1",
+      "startDate": "2024-01-01T08:00:00Z",
+      "endDate": "2024-01-01T09:00:00Z",
+      "durationMinutes": 60,
+      "isMaintenance": false,
+      "dependsOnWorkOrderIds": []
+    }
+  }
+]

@@ -57,9 +57,12 @@ Work center data:
 - Validation result (pass/fail with details).
 - Each change includes `deltaMinutes`: difference (minutes) between the recalculated `endDate` and the original `endDate` (positive = later, negative = earlier).
 
-## Sample scenarios (planned)
+## Sample scenarios
 
-- 3 scenarios: delay cascade, maintenance conflict, and multi-parent dependencies.
+- Scenario 1: delay cascade across dependent work orders on a single work center.
+- Scenario 2: maintenance window inside a shift forces a work order to pause and resume.
+- Scenario 3: multi-parent dependency across two work centers (child waits for both parents).
+- Scenario 4: maintenance work order blocks the work center and pushes production later (with production order inverted in input).
 
 ## Intended CLI usage
 
@@ -86,4 +89,5 @@ npm run dev -- data/scenario1.delay-cascade.json
 - Work duration is measured in working minutes, not wall-clock minutes.
 - Input `endDate` is accepted but recalculated during reflow.
 - Incomplete or future enhancements should be tagged with `@upgrade`.
+- Maintenance work orders are treated as blocking intervals on their work center.
 - Maintenance windows are assumed non-overlapping and non-adjacent (no back-to-back blocks).
