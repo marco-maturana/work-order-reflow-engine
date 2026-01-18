@@ -64,6 +64,12 @@ Work center data:
 - Scenario 3: multi-parent dependency across two work centers (child waits for both parents).
 - Scenario 4: maintenance work order blocks the work center and pushes production later (with production order inverted in input).
 
+## Setup
+
+```bash
+npm install
+```
+
 ## Intended CLI usage
 
 ```bash
