@@ -41,7 +41,9 @@ export class ReflowService {
     const workCentersById = this.buildWorkCenterIndex(workCenters);
     const state = this.initializeScheduleState();
 
-    const maintenanceWorkOrders = orderedWorkOrders.filter((workOrder) => workOrder.data.isMaintenance);
+    const maintenanceWorkOrders = orderedWorkOrders.filter(
+      (workOrder) => workOrder.data.isMaintenance,
+    );
     const productionWorkOrders = orderedWorkOrders.filter(
       (workOrder) => !workOrder.data.isMaintenance,
     );
