@@ -2,6 +2,8 @@ import { DateTime, Interval } from 'luxon';
 import type { WorkCenterData } from '../reflow/types';
 import { findNextShiftWindow, splitByMaintenance } from './calendar';
 
+const MAX_ADD_WORKING_MINUTES_ITERATIONS = 1000;
+
 export interface WorkingClockResult {
   end: DateTime;
   consumedMinutes: number;
@@ -25,7 +27,7 @@ export function addWorkingMinutes(
   let safety = 0;
 
   while (remaining > 0) {
-    if (safety++ > 1000) {
+    if (safety++ > MAX_ADD_WORKING_MINUTES_ITERATIONS) {
       throw new Error('Exceeded scheduling iterations while adding working minutes.');
     }
 
