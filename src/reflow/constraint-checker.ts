@@ -48,7 +48,7 @@ export function validateSchedule(
 
       if (idx > 0) {
         const prev = intervals[idx - 1];
-        if (!int.isMaintenance && !prev.isMaintenance && int.start < prev.end) {
+        if (int.start < prev.end) {
           errors.push(`Overlap on work center ${wc.docId}: ${prev.id} overlaps ${int.id}`);
         }
       }

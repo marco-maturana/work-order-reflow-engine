@@ -62,6 +62,31 @@ describe('validateSchedule', () => {
     expect(res.errors?.some((e) => e.includes('Overlap on work center'))).toBe(true);
   });
 
+  it('flags overlaps with maintenance work orders', () => {
+    const maintenance = createWorkOrder({
+      docId: 'M1',
+      data: {
+        workCenterId: workCenter.docId,
+        startDate: '2024-01-01T10:00:00Z',
+        endDate: '2024-01-01T11:00:00Z',
+        isMaintenance: true,
+      },
+    });
+    const production = createWorkOrder({
+      docId: 'P1',
+      data: {
+        workCenterId: workCenter.docId,
+        startDate: '2024-01-01T10:30:00Z',
+        endDate: '2024-01-01T11:30:00Z',
+      },
+    });
+
+    const res = validateSchedule([maintenance, production], [workCenter]);
+
+    expect(res.isValid).toBe(false);
+    expect(res.errors?.some((e) => e.includes('Overlap on work center'))).toBe(true);
+  });
+
   it('flags schedules that ignore maintenance windows', () => {
     const a = createWorkOrder({
       docId: 'A',

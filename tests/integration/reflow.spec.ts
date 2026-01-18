@@ -94,4 +94,48 @@ describe('ReflowService integration', () => {
 
     expect(reasonsWO2).toContain('dependencies');
   });
+
+  it('avoids overlaps with maintenance work orders', async () => {
+    const maintenanceCenter = createWorkCenter({
+      data: {
+        shifts: [{ dayOfWeek: 1, startHour: 8, endHour: 12 }],
+        maintenanceWindows: [],
+      },
+    });
+
+    const maintenance = createWorkOrder({
+      docId: 'M1',
+      data: {
+        workCenterId: maintenanceCenter.docId,
+        startDate: '2024-01-01T09:00:00Z',
+        endDate: '2024-01-01T10:00:00Z',
+        isMaintenance: true,
+      },
+    });
+    const production = createWorkOrder({
+      docId: 'P1',
+      data: {
+        workCenterId: maintenanceCenter.docId,
+        startDate: '2024-01-01T09:00:00Z',
+        endDate: '2024-01-01T10:00:00Z',
+      },
+    });
+
+    const documents: ScenarioDocument[] = [maintenanceCenter, maintenance, production];
+    const service = new ReflowService();
+    const result = await service.reflow({ documents });
+
+    const byId = new Map(result.updatedWorkOrders.map((wo) => [wo.docId, wo]));
+
+    expect(result.validation.isValid).toBe(true);
+
+    expect(byId.get('M1')?.data.startDate).toBe('2024-01-01T09:00:00Z');
+    expect(byId.get('M1')?.data.endDate).toBe('2024-01-01T10:00:00Z');
+
+    expect(byId.get('P1')?.data.startDate).toBe('2024-01-01T10:00:00Z');
+    expect(byId.get('P1')?.data.endDate).toBe('2024-01-01T11:00:00Z');
+
+    const reasons = result.changes.find((c) => c.workOrderId === 'P1')?.reasons ?? [];
+    expect(reasons).toContain('work center conflict');
+  });
 });

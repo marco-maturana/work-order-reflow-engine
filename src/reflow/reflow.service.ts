@@ -41,8 +41,22 @@ export class ReflowService {
     const workCentersById = this.buildWorkCenterIndex(workCenters);
     const state = this.initializeScheduleState();
 
-    for (const workOrder of orderedWorkOrders) {
-      this.scheduleWorkOrder(workOrder, workCentersById, state);
+    const maintenanceWorkOrders = orderedWorkOrders.filter((workOrder) => workOrder.data.isMaintenance);
+    const productionWorkOrders = orderedWorkOrders.filter(
+      (workOrder) => !workOrder.data.isMaintenance,
+    );
+
+    for (const workOrder of maintenanceWorkOrders) {
+      const originalStart = this.toUtc(workOrder.data.startDate);
+      const originalEnd = this.toUtc(workOrder.data.endDate);
+      this.scheduleMaintenanceWorkOrder(workOrder, originalStart, originalEnd, state);
+    }
+
+    for (const workOrder of productionWorkOrders) {
+      const workCenter = this.getWorkCenterById(workOrder.data.workCenterId, workCentersById);
+      const originalStart = this.toUtc(workOrder.data.startDate);
+      const originalEnd = this.toUtc(workOrder.data.endDate);
+      this.scheduleProductionWorkOrder(workOrder, workCenter, originalStart, originalEnd, state);
     }
 
     const validation = validateSchedule(state.updatedWorkOrders, workCenters);
@@ -81,23 +95,6 @@ export class ReflowService {
       updatedWorkOrders: [],
       explanation: [],
     };
-  }
-
-  private scheduleWorkOrder(
-    workOrder: WorkOrderDocument,
-    workCentersById: Map<string, WorkCenterDocument>,
-    state: ScheduleState,
-  ): void {
-    const workCenter = this.getWorkCenterById(workOrder.data.workCenterId, workCentersById);
-    const originalStart = this.toUtc(workOrder.data.startDate);
-    const originalEnd = this.toUtc(workOrder.data.endDate);
-
-    if (workOrder.data.isMaintenance) {
-      this.scheduleMaintenanceWorkOrder(workOrder, originalStart, originalEnd, state);
-      return;
-    }
-
-    this.scheduleProductionWorkOrder(workOrder, workCenter, originalStart, originalEnd, state);
   }
 
   private scheduleMaintenanceWorkOrder(
@@ -259,20 +256,18 @@ export class ReflowService {
       cursor = shiftAligned;
 
       const { end } = addWorkingMinutes(cursor, durationMinutes, workCenter);
-      const conflict = occupied.find(
-        (slot) =>
-          !slot.isMaintenance &&
-          this.intervalsOverlap(
-            {
-              start: cursor,
-              end,
-              workOrderId: 'candidate',
-              isMaintenance: false,
-              originalStart: cursor,
-              originalEnd: end,
-            },
-            slot,
-          ),
+      const conflict = occupied.find((slot) =>
+        this.intervalsOverlap(
+          {
+            start: cursor,
+            end,
+            workOrderId: 'candidate',
+            isMaintenance: false,
+            originalStart: cursor,
+            originalEnd: end,
+          },
+          slot,
+        ),
       );
 
       if (!conflict) {
