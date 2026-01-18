@@ -70,10 +70,13 @@ Work center data:
 npm install
 ```
 
-## Intended CLI usage
+## Usage
 
 ```bash
 npm run dev -- data/scenario1.delay-cascade.json
+npm run dev -- data/scenario2.maintenance.json
+npm run dev -- data/scenario3.multi-parent.json
+npm run dev -- data/scenario4.maintenance-workorder-block.json
 ```
 
 ## Tech stack (mandatory)
@@ -97,3 +100,4 @@ npm run dev -- data/scenario1.delay-cascade.json
 - Incomplete or future enhancements should be tagged with `@upgrade`.
 - Maintenance work orders are treated as blocking intervals on their work center.
 - Maintenance windows are assumed non-overlapping and non-adjacent (no back-to-back blocks).
+- Scheduler safety limits are capped (lookahead 14 days, slot search 200 iterations, add-working-minutes 1000 iterations); adjust constants if needed.
